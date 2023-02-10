@@ -3,15 +3,17 @@ const app = express()
 
 app.use(express.json())
 
-app.get("test", (req, res) => {
+app.get("/test", (req, res) => {
   res.status(200).json({
-    message: "Server is up and running...",
-    req,
-    res,
+    message: "Server is up and running... (Test route)",
   })
 })
 
-const port = 8080
+app.use("*", (err, req, res, next) => {
+  if (err) return res.status(500).json(err)
+})
+
+const port = 5000
 
 app.listen(port, () => {
   console.log(`Server is listening on port: ${port}...`)
