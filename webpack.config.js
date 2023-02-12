@@ -1,4 +1,5 @@
 const path = require("path")
+const webpack = require("webpack")
 
 module.exports = {
   target: "node",
@@ -12,5 +13,6 @@ module.exports = {
     clean: true,
   },
   //loaders - handle other types of files (because it only knows js & json)
-  //plugins -
+  //plugins
+  plugins: [new webpack.IgnorePlugin({ resourceRegExp: /^pg-native$/ })],
 }
