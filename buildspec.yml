@@ -5,7 +5,7 @@ phases:
     runtime-versions:
       docker: 23
       nodejs: 19
-  pre-build:
+  pre_build:
     commands:
       - echo Installing Dependencies
       - npm install
