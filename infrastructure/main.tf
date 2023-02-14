@@ -5,11 +5,44 @@ terraform {
      source  = "hashicorp/aws"
      version = "~> 4.0"
    }
+   okta = {
+    source = "okta/okta"
+    version = "~> 3.42"
+   }
  }
 }
  
 provider "aws" {
  region = "eu-central-1"
+}
+
+provider "okta" {
+    org_name = aws_ssm_parameter.okta_org_name.value
+    base_url = aws_ssm_parameter.okta_base_url.value
+    api_token = aws_ssm_parameter.okta_token.value
+}
+
+resource "aws_ssm_parameter" "okta_base_url" {
+    name = "/tool/okta/BASE_URL"
+    type = "String"
+}
+
+resource "aws_ssm_parameter" "okta_org_name" {
+    name = "/tool/okta/ORG_NAME"
+    # type = "String"
+}
+
+resource "aws_ssm_parameter" "okta_token" {
+    name = "/tool/okta/TOKEN"
+    # with_decryption = true
+    # type = "String"
+}
+
+locals {
+    okta_url = format("https://%s.%s",
+        aws_ssm_parameter.okta_org_name.value,
+        aws_ssm_parameter.okta_base_url.value
+    )
 }
 
 // Load Balancer
@@ -21,7 +54,7 @@ resource "aws_lb" "applb" {
     # dns_name                         = "E-Commerce-API-LB-1237091546.eu-central-1.elb.amazonaws.com"    
     drop_invalid_header_fields       = false
     enable_cross_zone_load_balancing = true
-    enable_deletion_protection       = false
+    enable_deletion_protection       = true
     enable_http2                     = true
     enable_waf_fail_open             = false
     # id                               = "arn:aws:elasticloadbalancing:eu-central-1:258038385982:loadbalancer/app/E-Commerce-API-LB/3512ec59392bbd34"
@@ -83,6 +116,23 @@ resource "aws_lb_listener" "httplistener" {
 
 resource "aws_lb_listener_rule" "rule_1" {
     listener_arn = aws_lb_listener.httplistener.arn
+
+    action {
+        type = "authenticate-oidc"
+
+        authenticate_oidc {
+            authorization_endpoint = "${local.okta_url}/oauth2/v1/authorize"
+            token_endpoint = "${local.okta_url}/oauth2/v1/token"
+            user_info_endpoint = "${local.okta_url}/oauth2/v1/userinfo"
+            issuer = local.okta_url
+            session_cookie_name = "TOKEN-My-OIDC"
+            session_timeout = 120
+            scope = "openid profile"
+            on_unauthenticated_request = "authenticate"
+            client_id = okta_app_oauth.oidc.client_id
+            client_secret = okta_app_oauth.oidc.client_secret
+        }
+    }
 
     action {
         # order            = 0
@@ -327,4 +377,13 @@ resource "aws_lb_target_group" "maintg" {
     #     on_deregistration = null
     #     on_unhealthy = null
     # }
+}
+
+resource "okta_app_oauth" "oidc" {
+    label = "E-Commerce OIDC"
+    type = "web"
+    grant_types = ["authorization_code"]
+    response_types = ["code"]
+    omit_secret = true
+    redirect_uris = ["http://${aws_lb.applb.dns_name}/oauth/idpresponse"]
 }
