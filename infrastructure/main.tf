@@ -16,35 +16,6 @@ provider "aws" {
  region = "eu-central-1"
 }
 
-provider "okta" {
-    org_name = aws_ssm_parameter.okta_org_name.value
-    base_url = aws_ssm_parameter.okta_base_url.value
-    api_token = aws_ssm_parameter.okta_token.value
-}
-
-resource "aws_ssm_parameter" "okta_base_url" {
-    name = "/tool/okta/BASE_URL"
-    type = "String"
-}
-
-resource "aws_ssm_parameter" "okta_org_name" {
-    name = "/tool/okta/ORG_NAME"
-    # type = "String"
-}
-
-resource "aws_ssm_parameter" "okta_token" {
-    name = "/tool/okta/TOKEN"
-    # with_decryption = true
-    # type = "String"
-}
-
-locals {
-    okta_url = format("https://%s.%s",
-        aws_ssm_parameter.okta_org_name.value,
-        aws_ssm_parameter.okta_base_url.value
-    )
-}
-
 // Load Balancer
 # aws_lb.applb:
 resource "aws_lb" "applb" {
@@ -121,16 +92,16 @@ resource "aws_lb_listener_rule" "rule_1" {
         type = "authenticate-oidc"
 
         authenticate_oidc {
-            authorization_endpoint = "${local.okta_url}/oauth2/v1/authorize"
+            authorization_endpoint = "${local.okta_url}/oauth2/default/authorize"
             token_endpoint = "${local.okta_url}/oauth2/v1/token"
             user_info_endpoint = "${local.okta_url}/oauth2/v1/userinfo"
-            issuer = local.okta_url
-            session_cookie_name = "TOKEN-My-OIDC"
+            issuer = local.okta_issuer
+            session_cookie_name = "RPAuthSessionCookie"
             session_timeout = 120
             scope = "openid profile"
             on_unauthenticated_request = "authenticate"
-            client_id = okta_app_oauth.oidc.client_id
-            client_secret = okta_app_oauth.oidc.client_secret
+            client_id = "0oa8c0tisljhMWJaN5d7"
+            client_secret = "F61bhlfOWphlmeqmgmK-Q3XjrMuh5b4Ezd6rq9Pm"
         }
     }
 
@@ -377,13 +348,4 @@ resource "aws_lb_target_group" "maintg" {
     #     on_deregistration = null
     #     on_unhealthy = null
     # }
-}
-
-resource "okta_app_oauth" "oidc" {
-    label = "E-Commerce OIDC"
-    type = "web"
-    grant_types = ["authorization_code"]
-    response_types = ["code"]
-    omit_secret = true
-    redirect_uris = ["http://${aws_lb.applb.dns_name}/oauth/idpresponse"]
 }
