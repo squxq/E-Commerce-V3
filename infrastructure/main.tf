@@ -88,22 +88,22 @@ resource "aws_lb_listener" "httplistener" {
 resource "aws_lb_listener_rule" "rule_1" {
     listener_arn = aws_lb_listener.httplistener.arn
 
-    action {
-        type = "authenticate-oidc"
+    # action {
+    #     type = "authenticate-oidc"
 
-        authenticate_oidc {
-            authorization_endpoint = "${local.okta_url}/oauth2/default/authorize"
-            token_endpoint = "${local.okta_url}/oauth2/v1/token"
-            user_info_endpoint = "${local.okta_url}/oauth2/v1/userinfo"
-            issuer = local.okta_issuer
-            session_cookie_name = "RPAuthSessionCookie"
-            session_timeout = 120
-            scope = "openid profile"
-            on_unauthenticated_request = "authenticate"
-            client_id = "0oa8c0tisljhMWJaN5d7"
-            client_secret = "F61bhlfOWphlmeqmgmK-Q3XjrMuh5b4Ezd6rq9Pm"
-        }
-    }
+    #     authenticate_oidc {
+    #         authorization_endpoint = "${local.okta_url}/oauth2/default/authorize"
+    #         token_endpoint = "${local.okta_url}/oauth2/v1/token"
+    #         user_info_endpoint = "${local.okta_url}/oauth2/v1/userinfo"
+    #         issuer = local.okta_issuer
+    #         session_cookie_name = "RPAuthSessionCookie"
+    #         session_timeout = 120
+    #         scope = "openid profile"
+    #         on_unauthenticated_request = "authenticate"
+    #         client_id = "0oa8c0tisljhMWJaN5d7"
+    #         client_secret = "F61bhlfOWphlmeqmgmK-Q3XjrMuh5b4Ezd6rq9Pm"
+    #     }
+    # }
 
     action {
         # order            = 0

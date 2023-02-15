@@ -1,15 +1,47 @@
 require("dotenv").config()
+require("express-async-errors")
 
+// Express
 const express = require("express")
 const app = express()
 
-const helmet = require("helmet")
+// Other Dependencies
+const helmet = require("helmet"),
+  cors = require("cors"),
+  xss = require("xss-clean"),
+  compression = require("compression"),
+  rateLimiter = require("express-rate-limit"),
+  mongoSanitize = require("express-mongo-sanitize"),
+  cookieParser = require("cookie-parser"),
+  fileUpload = require("express-fileupload")
+
+// Middleware
+const errorHandler = require("./src/api/v1/middlewares/error-handler")
+
+app.set("trusty proxy", 1)
+app.use(
+  rateLimiter({
+    windowMs: 15 * 60 * 1000,
+    max: 60,
+  })
+)
+
 app.use(helmet())
+app.use(cors({ origin: "*" }))
+app.use(xss())
+app.use(mongoSanitize())
 
+// Gzip Compression
+app.use(compression())
+
+// Setup other middleware
 app.use(express.json())
+app.use(express.urlencoded({ extended: false }))
+app.use(cookieParser())
+app.use(fileUpload())
 
+// /test Route
 const { pool } = require("./db")
-
 app.get("/test", async (req, res) => {
   try {
     const products = await pool.query("SELECT * FROM product")
@@ -25,9 +57,7 @@ app.get("/test", async (req, res) => {
   }
 })
 
-app.use("*", (err, req, res, next) => {
-  if (err) return res.status(500).json(err)
-})
+app.use("*", errorHandler)
 
 const PORT = process.env.SERVER_PORT
 
